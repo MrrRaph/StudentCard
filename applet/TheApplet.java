@@ -18,10 +18,17 @@ public class TheApplet extends Applet {
 	private static final byte READNAMEFROMCARD					= (byte)0x02;
 	private static final byte WRITENAMETOCARD					= (byte)0x01;
 
-	
+	private final static short NVRSIZE      = (short)1024;
+	private static byte[] NVR               = new byte[NVRSIZE];
+
+	//private OwnerPIN pin;
+
 
 
 	protected TheApplet() {
+		/*byte[] pincode = {(byte)0x30,(byte)0x30,(byte)0x30,(byte)0x30}; // PIN code "0000"
+		pin = new OwnerPIN(3, 8);
+		pin.update*/
 		this.register();
 	}
 
@@ -33,15 +40,17 @@ public class TheApplet extends Applet {
 
 	public boolean select() {
 		return true;
+		//return !(pin.getTriesRemaining() == 0);
 	} 
 
 
 	public void deselect() {
+		//pin.reset();
 	}
 
 
 	public void process(APDU apdu) throws ISOException {
-		if( selectingApplet() == true )
+		if(selectingApplet() == true)
 			return;
 
 		byte[] buffer = apdu.getBuffer();
@@ -94,59 +103,65 @@ public class TheApplet extends Applet {
 	}
 
 
-	void updateCardKey( APDU apdu ) {
+	void updateCardKey(APDU apdu) {
 	}
 
 
-	void uncipherFileByCard( APDU apdu ) {
+	void uncipherFileByCard(APDU apdu) {
 	}
 
 
-	void cipherFileByCard( APDU apdu ) {
+	void cipherFileByCard(APDU apdu) {
 	}
 
 
-	void cipherAndUncipherNameByCard( APDU apdu ) {
+	void cipherAndUncipherNameByCard(APDU apdu) {
 	}
 
 
-	void readFileFromCard( APDU apdu ) {
+	void readFileFromCard(APDU apdu) {
 	}
 
 
-	void writeFileToCard( APDU apdu ) {
+	void writeFileToCard(APDU apdu) {
 	}
 
 
-	void updateWritePIN( APDU apdu ) {
+	void updateWritePIN(APDU apdu) {
 	}
 
 
-	void updateReadPIN( APDU apdu ) {
+	void updateReadPIN(APDU apdu) {
 	}
 
 
-	void displayPINSecurity( APDU apdu ) {
+	void displayPINSecurity(APDU apdu) {
 	}
 
 
-	void desactivateActivatePINSecurity( APDU apdu ) {
+	void desactivateActivatePINSecurity(APDU apdu) {
 	}
 
 
-	void enterReadPIN( APDU apdu ) {
+	void enterReadPIN(APDU apdu) {
 	}
 
 
-	void enterWritePIN( APDU apdu ) {
+	void enterWritePIN(APDU apdu) {
 	}
 
 
-	void readNameFromCard( APDU apdu ) {
+	void readNameFromCard(APDU apdu) {
+		byte[] buffer = apdu.getBuffer();
+
+		Util.arrayCopy(NVR, (short) 1, buffer, (short) 0, NVR[0]);
+		apdu.setOutgoingAndSend((short) 0, NVR[0]);
 	}
 
 
-	void writeNameToCard( APDU apdu ) {
-
+	void writeNameToCard(APDU apdu) {
+		apdu.setIncomingAndReceive();
+		byte[] buffer = apdu.getBuffer();
+		Util.arrayCopy(buffer, (short) 4, NVR, (short) 0, (short) (buffer[4] + 1));
 	}
 }

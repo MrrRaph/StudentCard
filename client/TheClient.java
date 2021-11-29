@@ -10,6 +10,8 @@ public class TheClient {
 	private PassThruCardService servClient = null;
 	private boolean DISPLAY = true;
 	private boolean loop = true;
+	private CommandAPDU cmd;
+	private ResponseAPDU resp;
 
 	private static final byte CLA								= (byte)0x00;
 	private static final byte P1								= (byte)0x00;
@@ -45,7 +47,7 @@ public class TheClient {
 			else
 				System.out.println( "did not get a SmartCard object!\n" );
 
-			this.initNewCard( sm ); 
+			this.initNewCard(sm); 
 
 			SmartCard.shutdown();
 		} catch( Exception e ) {
@@ -61,12 +63,12 @@ public class TheClient {
 	private ResponseAPDU sendAPDU( CommandAPDU cmd, boolean display ) {
 		ResponseAPDU result = null;
 		try {
-			result = this.servClient.sendCommandAPDU( cmd );
+			result = this.servClient.sendCommandAPDU(cmd);
 			if(display)
 				displayAPDU(cmd, result);
 		} catch( Exception e ) {
-			System.out.println( "Exception caught in sendAPDU: " + e.getMessage() );
-			java.lang.System.exit( -1 );
+			System.out.println("Exception caught in sendAPDU: " + e.getMessage());
+			java.lang.System.exit(-1);
 		}
 		return result;
 	}
@@ -78,23 +80,23 @@ public class TheClient {
 
 
 	private String apdu2string( APDU apdu ) {
-		return removeCR( HexString.hexify( apdu.getBytes() ) );
+		return removeCR(HexString.hexify(apdu.getBytes()));
 	}
 
 
 	public void displayAPDU( APDU apdu ) {
-		System.out.println( removeCR( HexString.hexify( apdu.getBytes() ) ) + "\n" );
+		System.out.println(removeCR(HexString.hexify(apdu.getBytes())) + "\n");
 	}
 
 
 	public void displayAPDU( CommandAPDU termCmd, ResponseAPDU cardResp ) {
-		System.out.println( "--> Term: " + removeCR( HexString.hexify( termCmd.getBytes() ) ) );
-		System.out.println( "<-- Card: " + removeCR( HexString.hexify( cardResp.getBytes() ) ) );
+		System.out.println("--> Term: " + removeCR(HexString.hexify(termCmd.getBytes())));
+		System.out.println("<-- Card: " + removeCR(HexString.hexify(cardResp.getBytes())));
 	}
 
 
 	private String removeCR( String string ) {
-		return string.replace( '\n', ' ' );
+		return string.replace('\n', ' ');
 	}
 
 
@@ -106,17 +108,17 @@ public class TheClient {
 	private boolean selectApplet() {
 		boolean cardOk = false;
 		try {
-			CommandAPDU cmd = new CommandAPDU( new byte[] {
-				(byte)0x00, (byte)0xA4, (byte)0x04, (byte)0x00, (byte)0x0A,
+			CommandAPDU cmd = new CommandAPDU(new byte[]{
+					(byte)0x00, (byte)0xA4, (byte)0x04, (byte)0x00, (byte)0x0A,
 				    (byte)0xA0, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x62, 
 				    (byte)0x03, (byte)0x01, (byte)0x0C, (byte)0x06, (byte)0x01
 			});
-			ResponseAPDU resp = this.sendAPDU( cmd );
-			if( this.apdu2string( resp ).equals( "90 00" ) )
+			ResponseAPDU resp = this.sendAPDU(cmd);
+			if(this.apdu2string(resp).equals("90 00"))
 				cardOk = true;
 		} catch(Exception e) {
-			System.out.println( "Exception caught in selectApplet: " + e.getMessage() );
-			java.lang.System.exit( -1 );
+			System.out.println("Exception caught in selectApplet: " + e.getMessage());
+			java.lang.System.exit(-1);
 		}
 		return cardOk;
 	}
@@ -124,28 +126,28 @@ public class TheClient {
 
 	private void initNewCard( SmartCard card ) {
 		if( card != null )
-			System.out.println( "Smartcard inserted\n" );
+			System.out.println("Smartcard inserted\n");
 		else {
-			System.out.println( "Did not get a smartcard" );
-			System.exit( -1 );
+			System.out.println("Did not get a smartcard");
+			System.exit(-1);
 		}
 
-		System.out.println( "ATR: " + HexString.hexify( card.getCardID().getATR() ) + "\n");
+		System.out.println("ATR: " + HexString.hexify(card.getCardID().getATR()) + "\n");
 
 
 		try {
-			this.servClient = (PassThruCardService)card.getCardService( PassThruCardService.class, true );
+			this.servClient = (PassThruCardService) card.getCardService( PassThruCardService.class, true );
 		} catch( Exception e ) {
-			System.out.println( e.getMessage() );
+			System.out.println(e.getMessage());
 		}
 
 		System.out.println("Applet selecting...");
 		if( !this.selectApplet() ) {
-			System.out.println( "Wrong card, no applet to select!\n" );
-			System.exit( 1 );
+			System.out.println("Wrong card, no applet to select!\n");
+			System.exit(1);
 			return;
 		} else 
-			System.out.println( "Applet selected" );
+			System.out.println("Applet selected");
 
 		mainLoop();
 	}
@@ -200,10 +202,42 @@ public class TheClient {
 
 
 	void readNameFromCard() {
+		int apduLength = 5;
+		byte[] apdu = new byte[apduLength];
+		apdu[0] = CLA;
+		apdu[1] = READNAMEFROMCARD;
+		apdu[2] = P1;
+		apdu[3] = P2;
+		apdu[4] = 0x00;
+
+		this.cmd = new CommandAPDU(apdu);
+		resp = this.sendAPDU(cmd, DISPLAY);
+		if (this.apdu2string(resp).endsWith("90 00")) {
+			byte[] bytes = resp.getBytes();
+			String msg = "";
+
+			for(int i=0; i<bytes.length-2;i++)
+		    	msg += new StringBuffer("").append((char)bytes[i]);
+
+	    	System.out.println(msg);
+		}
 	}
 
 
 	void writeNameToCard() {
+		String name = readKeyboard();
+		int apduLength = name.length() + 5;
+		byte[] apdu = new byte[apduLength];
+		apdu[0] = CLA;
+		apdu[1] = WRITENAMETOCARD;
+		apdu[2] = P1;
+		apdu[3] = P2;
+		apdu[4] = (byte) name.length();
+
+		System.arraycopy(name.getBytes(), 0, apdu, 5, name.length());
+
+		this.cmd = new CommandAPDU(apdu);
+		resp = this.sendAPDU(cmd, DISPLAY);
 	}
 
 
@@ -252,45 +286,45 @@ public class TheClient {
 		try {
 			String choice = readKeyboard();
 			result = Integer.parseInt( choice );
-		} catch( Exception e ) {}
+		} catch(Exception ignored) {}
 
-		System.out.println( "" );
+		System.out.println("");
 
 		return result;
 	}
 
 
 	void printMenu() {
-		System.out.println( "" );
-		System.out.println( "14: update the DES key within the card" );
-		System.out.println( "13: uncipher a file by the card" );
-		System.out.println( "12: cipher a file by the card" );
-		System.out.println( "11: cipher and uncipher a name by the card" );
-		System.out.println( "10: read a file from the card" );
-		System.out.println( "9: write a file to the card" );
-		System.out.println( "8: update WRITE_PIN" );
-		System.out.println( "7: update READ_PIN" );
-		System.out.println( "6: display PIN security status" );
-		System.out.println( "5: desactivate/activate PIN security" );
-		System.out.println( "4: enter READ_PIN" );
-		System.out.println( "3: enter WRITE_PIN" );
-		System.out.println( "2: read a name from the card" );
-		System.out.println( "1: write a name to the card" );
-		System.out.println( "0: exit" );
-		System.out.print( "--> " );
+		System.out.println("");
+		System.out.println("14: update the DES key within the card");
+		System.out.println("13: uncipher a file by the card");
+		System.out.println("12: cipher a file by the card");
+		System.out.println("11: cipher and uncipher a name by the card");
+		System.out.println("10: read a file from the card");
+		System.out.println("9: write a file to the card");
+		System.out.println("8: update WRITE_PIN");
+		System.out.println("7: update READ_PIN");
+		System.out.println("6: display PIN security status");
+		System.out.println("5: desactivate/activate PIN security");
+		System.out.println("4: enter READ_PIN");
+		System.out.println("3: enter WRITE_PIN");
+		System.out.println("2: read a name from the card");
+		System.out.println("1: write a name to the card");
+		System.out.println("0: exit");
+		System.out.print("--> ");
 	}
 
 
 	void mainLoop() {
-		while( loop ) {
+		while(loop) {
 			printMenu();
 			int choice = readMenuChoice();
-			runAction( choice );
+			runAction(choice);
 		}
 	}
 
 
-	public static void main( String[] args ) throws InterruptedException {
+	public static void main(String[] args) throws InterruptedException {
 		new TheClient();
 	}
 }
