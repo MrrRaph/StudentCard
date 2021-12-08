@@ -32,7 +32,6 @@ public class TheClient {
 	private static final byte READNAMEFROMCARD					= (byte)0x02;
 	private static final byte WRITENAMETOCARD					= (byte)0x01;
 
-
 	public TheClient() {
 		try {
 			SmartCard.start();
@@ -178,26 +177,125 @@ public class TheClient {
 
 
 	void updateWritePIN() {
+		String pin = readKeyboard();
+		int apduLength = pin.length() + 5;
+		byte[] apdu = new byte[apduLength];
+		apdu[0] = CLA;
+		apdu[1] = UPDATEWRITEPIN;
+		apdu[2] = P1;
+		apdu[3] = P2;
+		apdu[4] = (byte) pin.length();
+
+		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+		this.cmd = new CommandAPDU(apdu);
+		displayAPDU(this.cmd);
+		resp = this.sendAPDU(cmd, DISPLAY);
+
+		if (this.apdu2string(resp).endsWith("90 00")) {
+			System.out.println("Write PIN Updated");
+		} else {
+			System.out.println("Incorrect pin entered !");
+		}
 	}
 
 
 	void updateReadPIN() {
+		String pin = readKeyboard();
+		int apduLength = pin.length() + 5;
+		byte[] apdu = new byte[apduLength];
+		apdu[0] = CLA;
+		apdu[1] = UPDATEREADPIN;
+		apdu[2] = P1;
+		apdu[3] = P2;
+		apdu[4] = (byte) pin.length();
+
+		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+		this.cmd = new CommandAPDU(apdu);
+		resp = this.sendAPDU(cmd, DISPLAY);
+
+		if (this.apdu2string(resp).endsWith("90 00")) {
+			System.out.println("Read PIN Updated");
+		} else {
+			System.out.println("Incorrect pin entered !");
+		}
 	}
 
 
 	void displayPINSecurity() {
+		int apduLength = 5;
+		byte[] apdu = new byte[apduLength];
+		apdu[0] = CLA;
+		apdu[1] = DISPLAYPINSECURITY;
+		apdu[2] = P1;
+		apdu[3] = P2;
+		apdu[4] = 0x00;
+
+		this.cmd = new CommandAPDU(apdu);
+		resp = this.sendAPDU(cmd, DISPLAY);
+
+		if (this.apdu2string(resp).endsWith("90 00")) {
+			byte[] bytes = resp.getBytes();
+	    	System.out.println("PINSecurity: " + (bytes[0] == 1 ? "activated" : "deactivated"));
+		}
 	}
 
 
 	void desactivateActivatePINSecurity() {
+		int apduLength = 5;
+		byte[] apdu = new byte[apduLength];
+		apdu[0] = CLA;
+		apdu[1] = DESACTIVATEACTIVATEPINSECURITY;
+		apdu[2] = P1;
+		apdu[3] = P2;
+		apdu[4] = 0x00;
+
+		this.cmd = new CommandAPDU(apdu);
+		resp = this.sendAPDU(cmd, DISPLAY);
 	}
 
 
 	void enterReadPIN() {
+		String pin = readKeyboard();
+		int apduLength = pin.length() + 5;
+		byte[] apdu = new byte[apduLength];
+		apdu[0] = CLA;
+		apdu[1] = ENTERREADPIN;
+		apdu[2] = P1;
+		apdu[3] = P2;
+		apdu[4] = (byte) pin.length();
+
+		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+		this.cmd = new CommandAPDU(apdu);
+		resp = this.sendAPDU(cmd, DISPLAY);
+
+		if (this.apdu2string(resp).endsWith("90 00")) {
+			System.out.println("Read Enabled");
+		} else {
+			System.out.println("Incorrect pin entered !");
+		}
 	}
 
 
 	void enterWritePIN() {
+		String pin = readKeyboard();
+		int apduLength = pin.length() + 5;
+		byte[] apdu = new byte[apduLength];
+		apdu[0] = CLA;
+		apdu[1] = ENTERWRITEPIN;
+		apdu[2] = P1;
+		apdu[3] = P2;
+		apdu[4] = (byte) pin.length();
+
+		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+		this.cmd = new CommandAPDU(apdu);
+		resp = this.sendAPDU(cmd, DISPLAY);
+
+		if (this.apdu2string(resp).endsWith("90 00")) {
+			System.out.println("Write Enabled");
+		} else {
+			System.out.println("Incorrect pin entered !");
+		}
+
 	}
 
 
@@ -220,6 +318,8 @@ public class TheClient {
 		    	msg += new StringBuffer("").append((char)bytes[i]);
 
 	    	System.out.println(msg);
+		} else {
+			System.out.println("You must enter the read pin first !");
 		}
 	}
 
@@ -238,6 +338,9 @@ public class TheClient {
 
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
+
+		if (!this.apdu2string(resp).endsWith("90 00"))
+			System.out.println("You must enter the write pin first !");
 	}
 
 

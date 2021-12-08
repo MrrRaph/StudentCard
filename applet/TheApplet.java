@@ -18,17 +18,34 @@ public class TheApplet extends Applet {
 	private static final byte READNAMEFROMCARD					= (byte)0x02;
 	private static final byte WRITENAMETOCARD					= (byte)0x01;
 
+	private final static short SW_VERIFICATION_FAILED       = (short) 0x6300; 
+    private final static short SW_PIN_VERIFICATION_REQUIRED = (short) 0x6301;
+
+
 	private final static short NVRSIZE      = (short)1024;
 	private static byte[] NVR               = new byte[NVRSIZE];
+	
 
-	//private OwnerPIN pin;
+	private OwnerPIN readPin;
+	private OwnerPIN writePin;
+
+	private boolean pinSecurity;
 
 
 
 	protected TheApplet() {
-		/*byte[] pincode = {(byte)0x30,(byte)0x30,(byte)0x30,(byte)0x30}; // PIN code "0000"
-		pin = new OwnerPIN(3, 8);
-		pin.update*/
+		byte[] writePinCode = {(byte)0x31,(byte)0x31,(byte)0x31,(byte)0x31};
+		byte[] readPinCode = {(byte)0x30,(byte)0x30,(byte)0x30,(byte)0x30};
+
+
+		this.writePin = new OwnerPIN((byte) 3, (byte) 8);
+		this.readPin = new OwnerPIN((byte) 3, (byte) 8);
+
+		this.writePin.update(writePinCode, (short) 0, (byte) 4);
+		this.readPin.update(readPinCode, (short) 0, (byte) 4);
+
+		this.pinSecurity = false;
+
 		this.register();
 	}
 
@@ -102,6 +119,11 @@ public class TheApplet extends Applet {
 		}
 	}
 
+	void verify(byte[] buffer, OwnerPIN pin) {
+		if(!pin.check(buffer, (byte)5, buffer[4])) 
+			ISOException.throwIt(SW_VERIFICATION_FAILED);
+	}
+
 
 	void updateCardKey(APDU apdu) {
 	}
@@ -128,30 +150,68 @@ public class TheApplet extends Applet {
 
 
 	void updateWritePIN(APDU apdu) {
+		if (!this.writePin.isValidated() && pinSecurity)
+			ISOException.throwIt(SW_PIN_VERIFICATION_REQUIRED);
+
+		apdu.setIncomingAndReceive();
+		byte[] buffer = apdu.getBuffer();
+
+		byte[] pinCode = new byte[4];
+		Util.arrayCopy(buffer, (short) 5, pinCode, (short) 0, (short) buffer[4]);
+
+		this.writePin.update(pinCode, (short) 0, (byte) 4);
 	}
 
 
 	void updateReadPIN(APDU apdu) {
+		if (!this.writePin.isValidated() && pinSecurity)
+			ISOException.throwIt(SW_PIN_VERIFICATION_REQUIRED);
+
+		apdu.setIncomingAndReceive();
+		byte[] buffer = apdu.getBuffer();
+		
+		byte[] pinCode = new byte[4];
+		Util.arrayCopy(buffer, (short) 5, pinCode, (short) 0, (short) buffer[4]);
+
+		this.readPin.update(pinCode, (short) 0, (byte) 4);
 	}
 
 
 	void displayPINSecurity(APDU apdu) {
+		byte[] buffer = apdu.getBuffer();
+
+		buffer[0] = (byte) (this.pinSecurity ? 1 : 0);
+		buffer[1] = 0;
+
+		apdu.setOutgoingAndSend((short) 0, (short) 2);
 	}
 
 
 	void desactivateActivatePINSecurity(APDU apdu) {
+		this.pinSecurity = !this.pinSecurity;
 	}
 
 
 	void enterReadPIN(APDU apdu) {
+		apdu.setIncomingAndReceive();
+		byte[] buffer = apdu.getBuffer();
+
+		verify(buffer, this.readPin);
 	}
 
 
 	void enterWritePIN(APDU apdu) {
+		apdu.setIncomingAndReceive();
+		byte[] buffer = apdu.getBuffer();
+
+		verify(buffer, this.writePin);
 	}
 
 
 	void readNameFromCard(APDU apdu) {
+		if (!this.readPin.isValidated() && pinSecurity)
+			ISOException.throwIt(SW_PIN_VERIFICATION_REQUIRED);
+
 		byte[] buffer = apdu.getBuffer();
 
 		Util.arrayCopy(NVR, (short) 1, buffer, (short) 0, NVR[0]);
@@ -160,6 +220,10 @@ public class TheApplet extends Applet {
 
 
 	void writeNameToCard(APDU apdu) {
+		if (!this.writePin.isValidated() && pinSecurity)
+			ISOException.throwIt(SW_PIN_VERIFICATION_REQUIRED);
+
+
 		apdu.setIncomingAndReceive();
 		byte[] buffer = apdu.getBuffer();
 		Util.arrayCopy(buffer, (short) 4, NVR, (short) 0, (short) (buffer[4] + 1));
