@@ -10,17 +10,22 @@ import client.codes.CommandCode;
 import client.codes.ResponseCode;
 
 public class TheClient {
-	private PassThruCardService servClient = null;
-	private boolean DISPLAY = true;
-	private boolean loop = true;
+	private PassThruCardService servClient;
+	private boolean loop;
 	private CommandAPDU cmd;
 	private ResponseAPDU resp;
 
-	private static final byte CLA								= (byte)0x00;
-	private static final byte P1								= (byte)0x00;
-	private static final byte P2								= (byte)0x00;
+	private static final boolean DISPLAY = true;
+
+	private static final byte CLA								= (byte) 0x00;
+	private static final byte P1								= (byte) 0x00;
+	private static final byte P2								= (byte) 0x00;
+	private static final byte FILE_BLOCK_SIZE					= (byte) 0x40;
+	private static 		 byte LC								= (byte) 0x00;
 
 	public TheClient() {
+		this.loop = true;
+
 		try {
 			SmartCard.start();
 			System.out.print( "Smartcard inserted?... " ); 
@@ -161,6 +166,7 @@ public class TheClient {
 
 
 	void writeFileToCard() {
+
 	}
 
 
@@ -172,9 +178,9 @@ public class TheClient {
 		apdu[1] = CommandCode.UPDATE_WRITE_PIN.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
-		apdu[4] = (byte) pin.length();
+		apdu[4] = LC = (byte) pin.length();
 
-		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+		System.arraycopy(pin.getBytes(), 0, apdu, 5, LC);
 
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
@@ -194,9 +200,9 @@ public class TheClient {
 		apdu[1] = CommandCode.UPDATE_READ_PIN.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
-		apdu[4] = (byte) pin.length();
+		apdu[4] = LC = (byte) pin.length();
 
-		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+		System.arraycopy(pin.getBytes(), 0, apdu, 5, LC);
 
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
@@ -215,7 +221,7 @@ public class TheClient {
 		apdu[1] = CommandCode.DISPLAY_PIN_SECURITY.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
-		apdu[4] = 0x00;
+		apdu[4] = LC = 0x00;
 
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
@@ -236,7 +242,7 @@ public class TheClient {
 		apdu[1] = CommandCode.DESACTIVATE_ACTIVATE_PIN_SECURITY.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
-		apdu[4] = 0x00;
+		apdu[4] = LC = 0x00;
 
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
@@ -256,9 +262,9 @@ public class TheClient {
 		apdu[1] = CommandCode.ENTER_READ_PIN.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
-		apdu[4] = (byte) pin.length();
+		apdu[4] = LC = (byte) pin.length();
 
-		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+		System.arraycopy(pin.getBytes(), 0, apdu, 5, LC);
 
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
@@ -279,9 +285,9 @@ public class TheClient {
 		apdu[1] = CommandCode.ENTER_WRITE_PIN.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
-		apdu[4] = (byte) pin.length();
+		apdu[4] = LC = (byte) pin.length();
 
-		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+		System.arraycopy(pin.getBytes(), 0, apdu, 5, LC);
 
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
@@ -300,7 +306,7 @@ public class TheClient {
 		apdu[1] = CommandCode.READ_NAME_FROM_CARD.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
-		apdu[4] = 0x00;
+		apdu[4] = LC = 0x00;
 
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
@@ -327,9 +333,9 @@ public class TheClient {
 		apdu[1] = CommandCode.WRITE_NAME_TO_CARD.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
-		apdu[4] = (byte) name.length();
+		apdu[4] = LC = (byte) name.length();
 
-		System.arraycopy(name.getBytes(), 0, apdu, 5, name.length());
+		System.arraycopy(name.getBytes(), 0, apdu, 5, LC);
 
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);

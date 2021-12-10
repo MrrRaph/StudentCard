@@ -20,9 +20,10 @@ public class TheApplet extends Applet {
 
 	private final static short SW_VERIFICATION_FAILED       = (short) 0x6300; 
     private final static short SW_PIN_VERIFICATION_REQUIRED = (short) 0x6301;
+	private final static short SW_NAME_REQUIRED 			= (short) 0x6302;
 
 
-	private final static short NVRSIZE      = (short)1024;
+	private final static short NVRSIZE      = (short) 16384;
 	private static byte[] NVR               = new byte[NVRSIZE];
 	
 
@@ -142,12 +143,41 @@ public class TheApplet extends Applet {
 
 
 	void readFileFromCard(APDU apdu) {
-		
+		if (!this.writePin.isValidated() && pinSecurity)
+			ISOException.throwIt(SW_PIN_VERIFICATION_REQUIRED);
+		else if (NVR[0] == 0)
+			ISOException.throwIt(SW_NAME_REQUIRED);
+
 	}
 
 
 	void writeFileToCard(APDU apdu) {
+		if (!this.writePin.isValidated() && pinSecurity)
+			ISOException.throwIt(SW_PIN_VERIFICATION_REQUIRED);
+		else if (NVR[0] == 0)
+			ISOException.throwIt(SW_NAME_REQUIRED);
 
+		apdu.setIncomingAndReceive();
+		byte[] buffer = apdu.getBuffer();
+
+		byte nameLength = NVR[0];
+		byte P1 = buffer[2];
+		byte P2 = buffer[3];
+		byte dataLength = buffer[4] + 1;
+
+		short fileOffset = nameLength + 1;
+		short chunkOffset = fileOffset + NVR[fileOffset];
+		short lastChunkSize = chunkOffset + 1;
+		short currentChunkOffset = (lastChunkSize + 1) * P2;
+
+		if (P1 == 1)
+			Util.arrayCopy(buffer, (short) 4, NVR, fileOffset, (short) dataLength);
+		else {
+			Util.arrayCopy(buffer, (short) 4, NVR, currentChunkOffset, (short) dataLength);
+			++NVR[chunkOffset];
+			if (P1 == 2) 
+				NVR[lastChunkSize] = dataLength;
+		}
 	}
 
 

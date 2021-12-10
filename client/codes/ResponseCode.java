@@ -4,6 +4,7 @@ public enum ResponseCode {
     OK("90 00", "Ok"),
     SW_VERIFICATION_FAILED("63 00", "Verification Failed"),
     SW_PIN_VERIFICATION_REQUIRED("63 01", "PIN Verification Required"),
+    SW_EXCEEDED_MAX_SIZE("6F 00", "Exceeded Max Size"),
     UNKNOWN("", "Unknown Response");
 
     private String responseCode;
