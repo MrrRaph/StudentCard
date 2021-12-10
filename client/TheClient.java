@@ -5,6 +5,7 @@ import opencard.core.service.*;
 import opencard.core.terminal.*;
 import opencard.core.util.*;
 import opencard.opt.util.*;
+import client.codes.CommandCode;
 
 public class TheClient {
 	private PassThruCardService servClient = null;
@@ -17,57 +18,42 @@ public class TheClient {
 	private static final byte P1								= (byte)0x00;
 	private static final byte P2								= (byte)0x00;
 
-	private static final byte UPDATECARDKEY						= (byte)0x14;
-	private static final byte UNCIPHERFILEBYCARD				= (byte)0x13;
-	private static final byte CIPHERFILEBYCARD					= (byte)0x12;
-	private static final byte CIPHERANDUNCIPHERNAMEBYCARD		= (byte)0x11;
-	private static final byte READFILEFROMCARD					= (byte)0x10;
-	private static final byte WRITEFILETOCARD					= (byte)0x09;
-	private static final byte UPDATEWRITEPIN					= (byte)0x08;
-	private static final byte UPDATEREADPIN						= (byte)0x07;
-	private static final byte DISPLAYPINSECURITY				= (byte)0x06;
-	private static final byte DESACTIVATEACTIVATEPINSECURITY	= (byte)0x05;
-	private static final byte ENTERREADPIN						= (byte)0x04;
-	private static final byte ENTERWRITEPIN						= (byte)0x03;
-	private static final byte READNAMEFROMCARD					= (byte)0x02;
-	private static final byte WRITENAMETOCARD					= (byte)0x01;
-
 	public TheClient() {
 		try {
 			SmartCard.start();
 			System.out.print( "Smartcard inserted?... " ); 
 
-			CardRequest cr = new CardRequest (CardRequest.ANYCARD,null,null); 
+			CardRequest cr = new CardRequest(CardRequest.ANYCARD, null, null); 
 
 			SmartCard sm = SmartCard.waitForCard (cr);
 
 			if (sm != null)
 				System.out.println ("got a SmartCard object!\n");
 			else
-				System.out.println( "did not get a SmartCard object!\n" );
+				System.out.println("did not get a SmartCard object!\n");
 
 			this.initNewCard(sm); 
 
 			SmartCard.shutdown();
-		} catch( Exception e ) {
-			System.out.println( "TheClient error: " + e.getMessage() );
+		} catch(Exception e) {
+			System.out.println("TheClient error: " + e.getMessage());
 		}
-		java.lang.System.exit(0) ;
+		System.exit(0);
 	}
 
 	private ResponseAPDU sendAPDU(CommandAPDU cmd) {
 		return sendAPDU(cmd, true);
 	}
 
-	private ResponseAPDU sendAPDU( CommandAPDU cmd, boolean display ) {
+	private ResponseAPDU sendAPDU(CommandAPDU cmd, boolean display) {
 		ResponseAPDU result = null;
 		try {
 			result = this.servClient.sendCommandAPDU(cmd);
 			if(display)
 				displayAPDU(cmd, result);
-		} catch( Exception e ) {
+		} catch(Exception e) {
 			System.out.println("Exception caught in sendAPDU: " + e.getMessage());
-			java.lang.System.exit(-1);
+			System.exit(-1);
 		}
 		return result;
 	}
@@ -78,23 +64,23 @@ public class TheClient {
 	 * **********************************************/
 
 
-	private String apdu2string( APDU apdu ) {
+	private String apdu2string(APDU apdu) {
 		return removeCR(HexString.hexify(apdu.getBytes()));
 	}
 
 
-	public void displayAPDU( APDU apdu ) {
+	public void displayAPDU(APDU apdu) {
 		System.out.println(removeCR(HexString.hexify(apdu.getBytes())) + "\n");
 	}
 
 
-	public void displayAPDU( CommandAPDU termCmd, ResponseAPDU cardResp ) {
+	public void displayAPDU(CommandAPDU termCmd, ResponseAPDU cardResp) {
 		System.out.println("--> Term: " + removeCR(HexString.hexify(termCmd.getBytes())));
 		System.out.println("<-- Card: " + removeCR(HexString.hexify(cardResp.getBytes())));
 	}
 
 
-	private String removeCR( String string ) {
+	private String removeCR(String string) {
 		return string.replace('\n', ' ');
 	}
 
@@ -117,14 +103,14 @@ public class TheClient {
 				cardOk = true;
 		} catch(Exception e) {
 			System.out.println("Exception caught in selectApplet: " + e.getMessage());
-			java.lang.System.exit(-1);
+			System.exit(-1);
 		}
 		return cardOk;
 	}
 
 
-	private void initNewCard( SmartCard card ) {
-		if( card != null )
+	private void initNewCard(SmartCard card) {
+		if(card != null)
 			System.out.println("Smartcard inserted\n");
 		else {
 			System.out.println("Did not get a smartcard");
@@ -135,13 +121,13 @@ public class TheClient {
 
 
 		try {
-			this.servClient = (PassThruCardService) card.getCardService( PassThruCardService.class, true );
-		} catch( Exception e ) {
+			this.servClient = (PassThruCardService) card.getCardService(PassThruCardService.class, true);
+		} catch(Exception e) {
 			System.out.println(e.getMessage());
 		}
 
 		System.out.println("Applet selecting...");
-		if( !this.selectApplet() ) {
+		if(!this.selectApplet()) {
 			System.out.println("Wrong card, no applet to select!\n");
 			System.exit(1);
 			return;
@@ -181,7 +167,7 @@ public class TheClient {
 		int apduLength = pin.length() + 5;
 		byte[] apdu = new byte[apduLength];
 		apdu[0] = CLA;
-		apdu[1] = UPDATEWRITEPIN;
+		apdu[1] = CommandCode.UPDATE_WRITE_PIN.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
 		apdu[4] = (byte) pin.length();
@@ -204,7 +190,7 @@ public class TheClient {
 		int apduLength = pin.length() + 5;
 		byte[] apdu = new byte[apduLength];
 		apdu[0] = CLA;
-		apdu[1] = UPDATEREADPIN;
+		apdu[1] = CommandCode.UPDATE_READ_PIN.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
 		apdu[4] = (byte) pin.length();
@@ -225,7 +211,7 @@ public class TheClient {
 		int apduLength = 5;
 		byte[] apdu = new byte[apduLength];
 		apdu[0] = CLA;
-		apdu[1] = DISPLAYPINSECURITY;
+		apdu[1] = CommandCode.DISPLAY_PIN_SECURITY.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
 		apdu[4] = 0x00;
@@ -244,7 +230,7 @@ public class TheClient {
 		int apduLength = 5;
 		byte[] apdu = new byte[apduLength];
 		apdu[0] = CLA;
-		apdu[1] = DESACTIVATEACTIVATEPINSECURITY;
+		apdu[1] = CommandCode.DESACTIVATE_ACTIVATE_PIN_SECURITY.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
 		apdu[4] = 0x00;
@@ -259,7 +245,7 @@ public class TheClient {
 		int apduLength = pin.length() + 5;
 		byte[] apdu = new byte[apduLength];
 		apdu[0] = CLA;
-		apdu[1] = ENTERREADPIN;
+		apdu[1] = CommandCode.ENTER_READ_PIN.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
 		apdu[4] = (byte) pin.length();
@@ -281,7 +267,7 @@ public class TheClient {
 		int apduLength = pin.length() + 5;
 		byte[] apdu = new byte[apduLength];
 		apdu[0] = CLA;
-		apdu[1] = ENTERWRITEPIN;
+		apdu[1] = CommandCode.ENTER_WRITE_PIN.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
 		apdu[4] = (byte) pin.length();
@@ -303,7 +289,7 @@ public class TheClient {
 		int apduLength = 5;
 		byte[] apdu = new byte[apduLength];
 		apdu[0] = CLA;
-		apdu[1] = READNAMEFROMCARD;
+		apdu[1] = CommandCode.READ_NAME_FROM_CARD.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
 		apdu[4] = 0x00;
@@ -329,7 +315,7 @@ public class TheClient {
 		int apduLength = name.length() + 5;
 		byte[] apdu = new byte[apduLength];
 		apdu[0] = CLA;
-		apdu[1] = WRITENAMETOCARD;
+		apdu[1] = CommandCode.WRITE_NAME_TO_CARD.getCode();
 		apdu[2] = P1;
 		apdu[3] = P2;
 		apdu[4] = (byte) name.length();
@@ -349,8 +335,8 @@ public class TheClient {
 	}
 
 
-	void runAction( int choice ) {
-		switch( choice ) {
+	void runAction(int choice) {
+		switch(choice) {
 			case 14: updateCardKey(); break;
 			case 13: uncipherFileByCard(); break;
 			case 12: cipherFileByCard(); break;
@@ -388,7 +374,7 @@ public class TheClient {
 
 		try {
 			String choice = readKeyboard();
-			result = Integer.parseInt( choice );
+			result = Integer.parseInt(choice);
 		} catch(Exception ignored) {}
 
 		System.out.println("");
@@ -421,8 +407,7 @@ public class TheClient {
 	void mainLoop() {
 		while(loop) {
 			printMenu();
-			int choice = readMenuChoice();
-			runAction(choice);
+			runAction(readMenuChoice());
 		}
 	}
 

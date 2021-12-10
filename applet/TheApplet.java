@@ -142,10 +142,12 @@ public class TheApplet extends Applet {
 
 
 	void readFileFromCard(APDU apdu) {
+		
 	}
 
 
 	void writeFileToCard(APDU apdu) {
+
 	}
 
 
