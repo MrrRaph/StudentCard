@@ -161,7 +161,7 @@ public class TheApplet extends Applet {
 		byte[] pinCode = new byte[4];
 		Util.arrayCopy(buffer, (short) 5, pinCode, (short) 0, (short) buffer[4]);
 
-		this.writePin.update(pinCode, (short) 0, (byte) 4);
+		this.writePin.update(pinCode, (short) 0, (byte) buffer[4]);
 	}
 
 
@@ -175,7 +175,7 @@ public class TheApplet extends Applet {
 		byte[] pinCode = new byte[4];
 		Util.arrayCopy(buffer, (short) 5, pinCode, (short) 0, (short) buffer[4]);
 
-		this.readPin.update(pinCode, (short) 0, (byte) 4);
+		this.readPin.update(pinCode, (short) 0, (byte) buffer[4]);
 	}
 
 

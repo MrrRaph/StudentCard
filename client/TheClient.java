@@ -5,7 +5,9 @@ import opencard.core.service.*;
 import opencard.core.terminal.*;
 import opencard.core.util.*;
 import opencard.opt.util.*;
+
 import client.codes.CommandCode;
+import client.codes.ResponseCode;
 
 public class TheClient {
 	private PassThruCardService servClient = null;
@@ -173,15 +175,14 @@ public class TheClient {
 		apdu[4] = (byte) pin.length();
 
 		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+
 		this.cmd = new CommandAPDU(apdu);
-		displayAPDU(this.cmd);
 		resp = this.sendAPDU(cmd, DISPLAY);
 
-		if (this.apdu2string(resp).endsWith("90 00")) {
-			System.out.println("Write PIN Updated");
-		} else {
-			System.out.println("Incorrect pin entered !");
-		}
+		ResponseCode responseCode = ResponseCode.fromString(this.apdu2string(resp));
+		if (responseCode == ResponseCode.OK)
+			System.out.println("[+] Write PIN Updated With " + pin);
+		else printError(responseCode);
 	}
 
 
@@ -196,14 +197,14 @@ public class TheClient {
 		apdu[4] = (byte) pin.length();
 
 		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
 
-		if (this.apdu2string(resp).endsWith("90 00")) {
-			System.out.println("Read PIN Updated");
-		} else {
-			System.out.println("Incorrect pin entered !");
-		}
+		ResponseCode responseCode = ResponseCode.fromString(this.apdu2string(resp));
+		if (responseCode == ResponseCode.OK)
+			System.out.println("[+] Read PIN Updated With " + pin);
+		else printError(responseCode);
 	}
 
 
@@ -219,10 +220,12 @@ public class TheClient {
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
 
-		if (this.apdu2string(resp).endsWith("90 00")) {
+		String responseString = this.apdu2string(resp);
+		ResponseCode responseCode = ResponseCode.fromString(responseString.substring(responseString.length() - 5));
+		if (responseCode == ResponseCode.OK) {
 			byte[] bytes = resp.getBytes();
-	    	System.out.println("PINSecurity: " + (bytes[0] == 1 ? "activated" : "deactivated"));
-		}
+	    	System.out.println("[+] PINSecurity: " + (bytes[0] == 1 ? "activated" : "deactivated"));
+		} else printError(responseCode);
 	}
 
 
@@ -237,6 +240,11 @@ public class TheClient {
 
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
+
+		ResponseCode responseCode = ResponseCode.fromString(this.apdu2string(resp));
+		if (responseCode == ResponseCode.OK)
+			System.out.println("[+] Toggled PIN Security");
+		else printError(responseCode);
 	}
 
 
@@ -251,14 +259,15 @@ public class TheClient {
 		apdu[4] = (byte) pin.length();
 
 		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
 
-		if (this.apdu2string(resp).endsWith("90 00")) {
-			System.out.println("Read Enabled");
-		} else {
-			System.out.println("Incorrect pin entered !");
-		}
+
+		ResponseCode responseCode = ResponseCode.fromString(this.apdu2string(resp));
+		if (responseCode == ResponseCode.OK)
+			System.out.println("[+] Read PIN Enabled");
+		else printError(responseCode);
 	}
 
 
@@ -273,15 +282,14 @@ public class TheClient {
 		apdu[4] = (byte) pin.length();
 
 		System.arraycopy(pin.getBytes(), 0, apdu, 5, pin.length());
+
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
 
-		if (this.apdu2string(resp).endsWith("90 00")) {
-			System.out.println("Write Enabled");
-		} else {
-			System.out.println("Incorrect pin entered !");
-		}
-
+		ResponseCode responseCode = ResponseCode.fromString(this.apdu2string(resp));
+		if (responseCode == ResponseCode.OK)
+			System.out.println("[+] Write PIN Enabled");
+		else printError(responseCode);
 	}
 
 
@@ -296,17 +304,18 @@ public class TheClient {
 
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
-		if (this.apdu2string(resp).endsWith("90 00")) {
+
+		String responseString = this.apdu2string(resp);
+		ResponseCode responseCode = ResponseCode.fromString(responseString.substring(responseString.length() - 5));
+		if (responseCode == ResponseCode.OK) {
 			byte[] bytes = resp.getBytes();
 			String msg = "";
 
-			for(int i=0; i<bytes.length-2;i++)
-		    	msg += new StringBuffer("").append((char)bytes[i]);
+			for(int i = 0; i < bytes.length - 2; ++i)
+		    	msg += new StringBuffer("").append((char) bytes[i]);
 
-	    	System.out.println(msg);
-		} else {
-			System.out.println("You must enter the read pin first !");
-		}
+	    	System.out.println("[+] " + msg + " name retrieved from the card");
+		} else printError(responseCode);
 	}
 
 
@@ -325,8 +334,10 @@ public class TheClient {
 		this.cmd = new CommandAPDU(apdu);
 		resp = this.sendAPDU(cmd, DISPLAY);
 
-		if (!this.apdu2string(resp).endsWith("90 00"))
-			System.out.println("You must enter the write pin first !");
+		ResponseCode responseCode = ResponseCode.fromString(this.apdu2string(resp));
+		if (responseCode == ResponseCode.OK) 
+			System.out.println("[+] " + name + " added to the name of the card");
+		else printError(responseCode);
 	}
 
 
@@ -352,7 +363,7 @@ public class TheClient {
 			case 2: readNameFromCard(); break;
 			case 1: writeNameToCard(); break;
 			case 0: exit(); break;
-			default: System.out.println( "unknown choice!" );
+			default: System.out.println("unknown choice!");
 		}
 	}
 
@@ -409,6 +420,10 @@ public class TheClient {
 			printMenu();
 			runAction(readMenuChoice());
 		}
+	}
+
+	void printError(ResponseCode responseCode) {
+		System.out.println("[!] ERROR: " + responseCode);
 	}
 
 
